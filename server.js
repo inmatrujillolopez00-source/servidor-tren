@@ -1,25 +1,24 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const PORT = process.env.PORT || 3000; // ¡Importante! Render asigna el puerto
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// Datos simulados del tren
+// Datos del tren
 let datosTren = {
     velocidad: 5.0,
     posicion: 0,
-    timestamp: new Date().toISOString(),
-    estado: "circulando"
+    timestamp: new Date().toISOString()
 };
 
-// Endpoint para obtener velocidad
+// Endpoint para obtener velocidad (GET - consulta normal)
 app.get('/api/tren/velocidad', (req, res) => {
     // Simular variaciones realistas
     datosTren.velocidad = 5 + Math.sin(Date.now() / 2000) * 3;
     datosTren.timestamp = new Date().toISOString();
-    
+
     res.json({
         velocidad: Number(datosTren.velocidad.toFixed(2)),
         timestamp: datosTren.timestamp
@@ -36,16 +35,45 @@ app.post('/api/tren/posicion', (req, res) => {
         datosTren.timestamp = new Date().toISOString();
         console.log(`Posición recibida: ${posicion.toFixed(2)} m`);
     }
-    res.json({ 
+    res.json({
         mensaje: "Posición actualizada",
-        timestamp: datosTren.timestamp 
+        timestamp: datosTren.timestamp
     });
 });
 
-// Endpoint de health check (para evitar que Render duerma el servicio)
-app.get('/health', (req, res) => {
+//NUEVO: Endpoint para CAMBIAR VELOCIDAD MANUALMENTE
+app.post('/api/tren/velocidad', (req, res) => {
+    const { velocidad } = req.body;
+    
+    if (velocidad !== undefined) {
+        datosTren.velocidad = velocidad;
+        datosTren.timestamp = new Date().toISOString();
+        console.log(`VELOCIDAD CAMBIADA MANUALMENTE: ${velocidad} km/h`);
+    }
+    
     res.json({ 
-        status: "ok", 
+        mensaje: "Velocidad actualizada manualmente",
+        velocidad: datosTren.velocidad,
+        timestamp: datosTren.timestamp
+    });
+});
+
+// NUEVO: Endpoint para REINICIAR TREN
+app.post('/api/tren/reiniciar', (req, res) => {
+    datosTren.posicion = 0;
+    datosTren.timestamp = new Date().toISOString();
+    console.log(`TREN REINICIADO (vuelta al inicio)`);
+    
+    res.json({ 
+        mensaje: "Tren reiniciado",
+        timestamp: datosTren.timestamp
+    });
+});
+
+// Endpoint de health check
+app.get('/health', (req, res) => {
+    res.json({
+        status: "ok",
         timestamp: new Date().toISOString(),
         tren: datosTren
     });
@@ -56,9 +84,11 @@ app.get('/', (req, res) => {
     res.json({
         mensaje: "API del Tren Digital",
         endpoints: [
-            "/api/tren/velocidad",
-            "/api/tren/posicion",
-            "/health"
+            "GET  /api/tren/velocidad",
+            "POST /api/tren/posicion", 
+            "POST /api/tren/velocidad (manual)",
+            "POST /api/tren/reiniciar",
+            "GET  /health"
         ]
     });
 });
