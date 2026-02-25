@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,10 +13,21 @@ let datosTren = {
     timestamp: new Date().toISOString()
 };
 
-// Endpoint para obtener velocidad (GET - consulta normal)
+let modoAutomatico = true;  // ← NUEVO: controla si simulamos o no
+
+// Endpoint para obtener velocidad (GET)
 app.get('/api/tren/velocidad', (req, res) => {
-    // Simular variaciones realistas
-    datosTren.velocidad = 5 + Math.sin(Date.now() / 2000) * 3;
+    let velocidad;
+
+    if (modoAutomatico) {
+        // Simular variaciones realistas
+        velocidad = 5 + Math.sin(Date.now() / 2000) * 3;
+    } else {
+        // Usar la velocidad manual guardada
+        velocidad = datosTren.velocidad;
+    }
+
+    datosTren.velocidad = velocidad;
     datosTren.timestamp = new Date().toISOString();
 
     res.json({
@@ -27,27 +38,28 @@ app.get('/api/tren/velocidad', (req, res) => {
     console.log(`Velocidad enviada: ${datosTren.velocidad.toFixed(2)} km/h`);
 });
 
-// Endpoint para recibir posici�n del tren
+// Endpoint para recibir posición del tren
 app.post('/api/tren/posicion', (req, res) => {
     const { posicion } = req.body;
     if (posicion !== undefined) {
         datosTren.posicion = posicion;
         datosTren.timestamp = new Date().toISOString();
-        console.log(`Posici�n recibida: ${posicion.toFixed(2)} m`);
+        console.log(`Posición recibida: ${posicion.toFixed(2)} m`);
     }
     res.json({
-        mensaje: "Posici�n actualizada",
+        mensaje: "Posición actualizada",
         timestamp: datosTren.timestamp
     });
 });
 
-//NUEVO: Endpoint para CAMBIAR VELOCIDAD MANUALMENTE
+// Endpoint para CAMBIAR VELOCIDAD MANUALMENTE
 app.post('/api/tren/velocidad', (req, res) => {
     const { velocidad } = req.body;
     
     if (velocidad !== undefined) {
         datosTren.velocidad = velocidad;
         datosTren.timestamp = new Date().toISOString();
+        modoAutomatico = false;  // ← NUEVO: desactivamos simulación
         console.log(`VELOCIDAD CAMBIADA MANUALMENTE: ${velocidad} km/h`);
     }
     
@@ -58,10 +70,11 @@ app.post('/api/tren/velocidad', (req, res) => {
     });
 });
 
-// NUEVO: Endpoint para REINICIAR TREN
+// Endpoint para REINICIAR TREN
 app.post('/api/tren/reiniciar', (req, res) => {
     datosTren.posicion = 0;
     datosTren.timestamp = new Date().toISOString();
+    modoAutomatico = true;  // ← NUEVO: al reiniciar, volvemos a modo automático
     console.log(`TREN REINICIADO (vuelta al inicio)`);
     
     res.json({ 
@@ -79,7 +92,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Endpoint ra�z
+// Endpoint raíz
 app.get('/', (req, res) => {
     res.json({
         mensaje: "API del Tren Digital",
